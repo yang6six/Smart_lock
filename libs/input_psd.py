@@ -4,10 +4,9 @@ from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.graphics import Color, RoundedRectangle
 
-
-import libs.communication as com
-
 def tackle_wifi_communication(data):
+    import libs.communication as com
+    data += '\n'
     com.send_message(data=data.encode("utf-8"))
 
 kv_string = '''
