@@ -1,0 +1,12 @@
+# 基础 Python 版本支持
+python>=3.8,<3.12  # 避免过高版本可能的兼容性问题
+
+# Kivy 核心框架及依赖
+kivy==2.2.1  # 稳定版本，兼容性较好
+kivy-deps.angle==0.3.3  # 图形渲染依赖（可选，视平台而定）
+kivy-deps.glew==0.3.1
+kivy-deps.sdl2==0.6.0
+
+# 打包工具
+buildozer==1.4.0  # 用于安卓/iOS 打包
+python-for-android==2023.10.0  # Buildozer 依赖的安卓工具链
