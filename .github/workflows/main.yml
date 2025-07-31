@@ -1,0 +1,81 @@
+name: Build Kivy Android APK
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install kivy
+        pip install buildozer
+        sudo apt-get update
+        sudo apt-get install -y \
+            git zip unzip openjdk-17-jdk \
+            python3-pip autoconf libtool \
+            pkg-config zlib1g-dev libncurses5-dev \
+            libncursesw5-dev libtinfo5 cmake \
+            libffi-dev libssl-dev
+
+    - name: Cache Buildozer downloads
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.buildozer
+          ./.buildozer
+        key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+        restore-keys: |
+          ${{ runner.os }}-buildozer-
+
+    - name: Configure buildozer.spec
+      run: |
+        if [ ! -f "buildozer.spec" ]; then
+          buildozer init
+        fi
+        
+        # 根据你的目录结构配置
+        sed -i 's/^app.name =.*/app.name = MyApp/' buildozer.spec  # 替换为你的应用名
+        sed -i 's/^app.domain =.*/app.domain = com.yourdomain/' buildozer.spec  # 替换为你的域名
+        sed -i 's/^source.dir =.*/source.dir = ./' buildozer.spec
+        sed -i 's/^source.include_exts =.*/source.include_exts = py,png,ttf/' buildozer.spec  # 包含所需文件类型
+        sed -i 's/^icon.filename =.*/icon.filename = assets\/ico.png/' buildozer.spec  # 图标路径
+        sed -i '/^source.include_dirs =.*/d' buildozer.spec
+        echo 'source.include_dirs = libs, fonts' >> buildozer.spec  # 包含自定义库和字体目录
+        sed -i 's/^requirements =.*/requirements = python3, kivy/' buildozer.spec
+        sed -i 's/^android.permissions =.*/android.permissions = INTERNET/' buildozer.spec  # 基础权限
+
+    - name: Build APK
+      run: |
+        buildozer -v android debug
+
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: kivy-app-apk
+        path: bin/*.apk
+        retention-days: 30
+
+    - name: Create release (on push to main)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: softprops/action-gh-release@v2
+      with:
+        files: bin/*.apk
+        name: Automated Build ${{ github.sha }}
+        tag_name: build-${{ github.sha }}
